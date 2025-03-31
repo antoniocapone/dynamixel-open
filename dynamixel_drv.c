@@ -1,6 +1,6 @@
 #include "dynamixel_drv.h"
 
-DynamixelStatus Dynamixel_Driver_Init(DynamixelDriverHandler* handler, uint8_t id,
+DynamixelStatus Dynamixel_Driver_Init(DynamixelDriverHandler *handler, uint8_t id,
 									  DynamixelInterface interface) {
 
 	handler->id = id; /* TODO(antonio): set the effectively id */
@@ -29,24 +29,7 @@ DynamixelStatus Dynamixel_Driver_Write(DynamixelDriverHandler* handler, uint8_t*
 	/* Apply Byte Stuffing */
 	uint8_t stuffed_buf[2 * raw_buf_length];  /* Worst case: every byte needs escaping */
 	uint8_t stuffed_len = 0;
-
-	for (uint8_t i = 0; i < raw_buf_length; i++) {
-		if (raw_buf[i] == 0xFD) {
-			stuffed_buf[stuffed_len++] = 0xFD;
-			stuffed_buf[stuffed_len++] = 0xFD;
-		} else if (raw_buf[i] == 0xFF) {
-			stuffed_buf[stuffed_len++] = 0xFD;
-			stuffed_buf[stuffed_len++] = 0xFC;
-		} else if (raw_buf[i] == 0xFE) {
-			stuffed_buf[stuffed_len++] = 0xFD;
-			stuffed_buf[stuffed_len++] = 0xFB;
-		} else {
-			stuffed_buf[stuffed_len++] = raw_buf[i];
-		}
-	}
-
-	/* Update packet length (including any stuffed bytes) */
-	header->length = LENGTH_LOW(stuffed_len + 2) | LENGTH_HIGH(stuffed_len + 2);  /* +2 for CRC */
+	byte_stuffing(raw_buf, raw_buf_length, stuffed_buf, &stuffed_len);
 
 	/* Calculate final CRC with byte stuffing applied */
 	uint16_t crc = update_crc(0, stuffed_buf, stuffed_len);
@@ -73,7 +56,8 @@ DynamixelStatus Dynamixel_Driver_Write(DynamixelDriverHandler* handler, uint8_t*
 	return status;
 }
 
-DynamixelStatus Dynamixel_Driver_Ping(DynamixelDriverHandler* handler, uint8_t* err) {
+DynamixelStatus Dynamixel_Driver_Ping(DynamixelDriverHandler *handler, uint8_t *err) {
+	/* TODO(antonio): rework this shitty code */
 	uint8_t packet[10];
 	DynamixelInstHeader *header = packet;
 	header->header1 = 0xFF;
@@ -98,7 +82,30 @@ DynamixelStatus Dynamixel_Driver_Ping(DynamixelDriverHandler* handler, uint8_t* 
 	return status;
 }
 
-static unsigned short update_crc(unsigned short crc_accum, unsigned char* data_blk_ptr,
+static void byte_stuffing(uint8_t *raw_packet, uint8_t raw_len, uint8_t *stuffed_packet, uint8_t *stuffed_len) {
+	/* TODO(antonio): implement */
+
+	// for (uint8_t i = 0; i < raw_buf_length; i++) {
+	// 	/* TODO(antonio): correct the byte stuffing sequence, it is 0xFF 0xFF 0xFD => 0xFF 0xFF 0xFD
+	// 0xFD */ 	if (raw_buf[i] == 0xFD) { 		stuffed_buf[stuffed_len++] = 0xFD;
+	// 		stuffed_buf[stuffed_len++] = 0xFD;
+	// 	} else if (raw_buf[i] == 0xFF) {
+	// 		stuffed_buf[stuffed_len++] = 0xFD;
+	// 		stuffed_buf[stuffed_len++] = 0xFC;
+	// 	} else if (raw_buf[i] == 0xFE) {
+	// 		stuffed_buf[stuffed_len++] = 0xFD;
+	// 		stuffed_buf[stuffed_len++] = 0xFB;
+	// 	} else {
+	// 		stuffed_buf[stuffed_len++] = raw_buf[i];
+	// 	}
+	// }
+
+	// /* Update packet length (including any stuffed bytes) */
+	// header->length = LENGTH_LOW(stuffed_len + 2) | LENGTH_HIGH(stuffed_len + 2);  /* +2 for CRC
+	// */
+}
+
+static unsigned short update_crc(unsigned short crc_accum, unsigned char *data_blk_ptr,
 						  unsigned short data_blk_size) {
 	unsigned short i, j;
 	unsigned short crc_table[256] = {
