@@ -3,7 +3,7 @@
 DynamixelStatus Dynamixel_Driver_Init(DynamixelDriverHandler *handler, uint8_t id,
 									  DynamixelInterface interface) {
 
-	handler->id = id; /* TODO(antonio): set the effectively id */
+	handler->id = id; /* TODO(antonio): set the effectively id with appropriate command */
 	return Dynamixel_COM_Init(&handler->com, interface);
 }
 
@@ -39,14 +39,14 @@ DynamixelStatus Dynamixel_Driver_Write(DynamixelDriverHandler* handler, uint8_t*
 	stuffed_buf[stuffed_len++] = (uint8_t)((crc >> 8) & 0xFF);
 
 	/* Transmit stuffed packet */
-	DynamixelStatus status = handler->com.interface.transmit(stuffed_buf, stuffed_len, 50);
+	DynamixelStatus status = Dynamixel_COM_Transmit(&handler->com, stuffed_buf, stuffed_len, 50);
 	if (status != Dynamixel_OK) {
 		return status;
 	}
 
 	/* Receive response */
 	uint8_t read_buf[11];
-	status = handler->com.interface.receive(read_buf, 11, 50);
+	status = Dynamixel_COM_Receive(&handler->com, read_buf, 11, 50);
 	if (status == Dynamixel_NOT_OK) {
 		return status;
 	}
@@ -69,10 +69,10 @@ DynamixelStatus Dynamixel_Driver_Ping(DynamixelDriverHandler *handler, uint8_t *
 	header->length = LENGTH_LOW(0x03) | LENGTH_HIGH(0x03);
 	uint16_t *crc_ptr = &packet[9];
 	*crc_ptr = update_crc(0, packet, 5 + header->length);
-	handler->com.interface.transmit(packet, 10, 50);
+	Dynamixel_COM_Transmit(&handler->com, packet, 10, 50); /* TODO(antonio): check status */
 
 	uint8_t read_buf[14];
-	DynamixelStatus status = handler->com.interface.receive(read_buf, 14, 50);
+	DynamixelStatus status = Dynamixel_COM_Receive(&handler->com, read_buf, 14, 50);
 	if (status == Dynamixel_NOT_OK) {
 		return status;
 	}
